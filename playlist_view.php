@@ -91,25 +91,7 @@ $songs = $conn->query("SELECT s.title, s.file_path, u.firstname, u.lastname FROM
             </li>
         <?php endwhile; endif; ?>
     </ul>
-<div class="container">
-    <a href="listener_dashboard.php" class="btn btn-secondary mb-3">&larr; Back to Dashboard</a>
-    <h2><?= htmlspecialchars($playlist_name) ?> <span style="font-size:1rem;color:#aaa;">(Playlist)</span></h2>
-    <ul class="song-list">
-        <?php if ($songs->num_rows == 0): ?>
-            <li>No songs in this playlist.</li>
-        <?php else: while($song = $songs->fetch_assoc()): ?>
-            <li>
-                <span>
-                    <span class="song-title"><?= htmlspecialchars($song['title']) ?></span>
-                    <span class="song-artist">by <?= htmlspecialchars($song['firstname'].' '.$song['lastname']) ?></span>
-                </span>
-                <audio controls>
-                    <source src="<?= htmlspecialchars($song['file_path']) ?>" type="audio/mpeg">
-                </audio>
-            </li>
-        <?php endwhile; endif; ?>
-    </ul>
-</div>
+<a href="listener_dashboard.php" class="btn btn-secondary mb-3">&larr; Back to Dashboard</a>
 </div>
 </body>
 </html>

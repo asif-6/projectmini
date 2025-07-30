@@ -15,7 +15,7 @@ session_start();
     <style>
         body {
             background:
-            url('bg.jpeg') no-repeat center center fixed;
+            url('musician.jpg') no-repeat center center fixed;
             min-height: 100vh;
             background-size: cover;
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -44,7 +44,7 @@ session_start();
         .hero {
             background: linear-gradient(rgba(0,0,0,0.6),rgba(0, 0, 0, 0.7)), url('banner.jpg') no-repeat center center;
             background-size: cover;
-            height: 60vh;
+            height: 80vh;
             color: #fff;
             display: flex;
             align-items: center;
@@ -102,6 +102,12 @@ session_start();
             .feature-box {
                 min-height: 180px;
             }
+        }
+        .alert.alert-success{
+            background-color: transparent;
+            color: white;
+            padding: 10px 0;
+            border:none;
         }
     </style>
 </head>

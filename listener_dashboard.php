@@ -23,6 +23,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_playlist'])) {
     }
 }
 
+// Handle playlist deletion
+if (isset($_POST['delete_playlist']) && isset($_POST['playlist_id'])) {
+    $playlist_id = intval($_POST['playlist_id']);
+    // Only allow deleting own playlist
+    $del = $conn->prepare("DELETE FROM playlists WHERE id = ? AND user_id = ?");
+    $del->bind_param("ii", $playlist_id, $_SESSION['user_id']);
+    $del->execute();
+    $del->close();
+    // Delete songs from playlist_songs table as well
+    $del_songs = $conn->prepare("DELETE FROM playlist_songs WHERE playlist_id = ?");
+    $del_songs->bind_param("i", $playlist_id);
+    $del_songs->execute();
+    $del_songs->close();
+    // Refresh to update the playlist list
+    header("Location: listener_dashboard.php");
+    exit();
+}
+
 // Handle adding song to playlist
 $song_add_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_playlist'])) {
@@ -89,7 +107,6 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         body {
-            background: url('bg.jpeg') no-repeat center center fixed;
             min-height: 100vh;
             background-size: cover;
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -106,7 +123,7 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
             letter-spacing: 2px;
         }
         .dashboard-section {
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.40);
             border-radius: 20px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.18);
             padding: 32px 24px;
@@ -117,19 +134,19 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
             padding: 0;
         }
         .song-list li {
-            background: rgba(30,30,30,0.85);
+            background: rgba(0, 0, 0, 0.85);
             border-radius: 14px;
             margin-bottom: 18px;
             padding: 18px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(53, 49, 49, 0.09);
             transition: background 0.2s;
             gap: 18px;
         }
         .song-list li:hover {
-            background: rgba(0, 0, 0, 0.13);
+            background: rgba(45, 45, 45, 0.87);
         }
         .song-info {
             min-width: 0;
@@ -159,13 +176,13 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
             display: block;
         }
         audio {
-            width: 180px;
+            width: 320px;
             min-width: 120px;
             max-width: 260px;
             margin-left: 20px;
         }
         .playlist-section {
-            background: rgba(0, 0, 0, 0.92);
+            background: rgba(0, 0, 0, 0.07);
             border-radius: 14px;
             padding: 24px 18px;
             margin-bottom: 32px;
@@ -203,6 +220,9 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
             padding: 8px 14px;
             margin-bottom: 8px;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         @media (max-width: 768px) {
             .dashboard-section {
@@ -223,9 +243,26 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
                 margin-top: 8px;
             }
         }
+        /* Video background styles */
+        #bgvid {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100vw;
+            min-height: 100vh;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
+<!-- Video Background -->
+<video autoplay muted loop id="bgvid">
+    <source src="stringing.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+</video>
 <nav class="navbar navbar-expand-lg mb-2">
     <div class="container">
         <a class="navbar-brand" href="#">SoundNext</a>
@@ -235,43 +272,51 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
     </div>
 </nav>
 <!-- Search Bar at Top -->
+ 
 <div class="search-bar-top">
-    <form class="d-flex justify-content-center search-bar" action="search.php" method="GET">
-        <input class="form-control" type="search" name="q" placeholder="Search for songs, artists..." aria-label="Search">
-        <button class="btn btn-primary ms-2" type="submit">Search</button>
+    <form class="d-flex justify-content-center search-bar" onsubmit="return false;">
+        <input class="form-control" type="search" id="mainSongSearch" placeholder="Search for songs or artists..." aria-label="Search">
+        <button class="btn btn-primary ms-2" type="button" tabindex="-1">Search</button>
     </form>
 </div>
-
 <div class="container">
     <div class="dashboard-section">
         <h2 class="mb-4"><i class="bi bi-music-note-beamed"></i> Welcome, <?= htmlspecialchars($_SESSION['firstname']) ?>!</h2>
         <div class="row">
             <!-- Playlist Section -->
-<div class="col-md-4 playlist-section">
-    <h4><i class="bi bi-list-ul"></i> Your Playlists</h4>
-    <?php if ($playlist_message) echo $playlist_message; ?>
-    <form method="POST" class="mb-3">
-        <div class="input-group">
-            <input type="text" name="playlist_name" class="form-control" placeholder="New Playlist Name" required>
-            <button type="submit" name="create_playlist" class="btn btn-spotify">Create</button>
-        </div>
-    </form>
-    <ul class="playlist-list">
-        <?php while($pl = $playlists_result->fetch_assoc()): ?>
-            <li>
-                <i class="bi bi-music-note-list"></i>
-                <a href="playlist_view.php?id=<?= $pl['id'] ?>" target="_blank" style="color:#fff;text-decoration:underline;">
-                    <?= htmlspecialchars($pl['name']) ?>
-                </a>
-            </li>
-        <?php endwhile; ?>
-    </ul>
-</div>
+            <div class="col-md-4 playlist-section">
+                <h4><i class="bi bi-list-ul"></i> Your Playlists</h4>
+                <?php if ($playlist_message) echo $playlist_message; ?>
+                <form method="POST" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="playlist_name" class="form-control" placeholder="New Playlist Name" required>
+                        <button type="submit" name="create_playlist" class="btn btn-spotify">Create</button>
+                    </div>
+                </form>
+                <ul class="playlist-list">
+                    <?php while($pl = $playlists_result->fetch_assoc()): ?>
+                        <li>
+                            <span>
+                                <i class="bi bi-music-note-list"></i>
+                                <a href="playlist_view.php?id=<?= $pl['id'] ?>" target="_blank" style="color:#fff;text-decoration:underline;">
+                                    <?= htmlspecialchars($pl['name']) ?>
+                                </a>
+                            </span>
+                            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this playlist?');">
+                                <input type="hidden" name="playlist_id" value="<?= $pl['id'] ?>">
+                                <button type="submit" name="delete_playlist" class="btn btn-sm btn-danger ms-2">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </li>
+                    <?php endwhile; ?>
+                </ul>
+            </div>
             <!-- Songs Section -->
             <div class="col-md-8">
                 <?php if ($song_add_message) echo $song_add_message; ?>
                 <h4><i class="bi bi-disc"></i> All Songs</h4>
-                <ul class="song-list">
+                <ul class="song-list" id="songList">
                     <?php
                     // Re-fetch playlists for song add dropdown
                     $playlists = $conn->prepare("SELECT id, name FROM playlists WHERE user_id = ?");
@@ -312,8 +357,31 @@ while ($pl = $my_playlists_result->fetch_assoc()) {
         </div>
     </div>
 </div>
+
+</body>
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('mainSongSearch');
+    if (!searchInput) return;
+    searchInput.addEventListener('input', function() {
+        let filter = this.value.trim().toLowerCase();
+        let items = document.querySelectorAll('#songList li');
+        items.forEach(function(li) {
+            let titleElem = li.querySelector('.song-title');
+            let artistElem = li.querySelector('.song-artist');
+            let title = titleElem ? titleElem.textContent.trim().toLowerCase() : '';
+            let artist = artistElem ? artistElem.textContent.trim().toLowerCase() : '';
+            if (filter === '' || title.includes(filter) || artist.includes(filter)) {
+                li.style.display = '';
+            } else {
+                li.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
 <script>
 // Only one audio plays at a time
 document.addEventListener('play', function(e){
@@ -338,6 +406,6 @@ setTimeout(function() {
         }, 500);
     });
 }, 2000);
-</script>
-</body>
-</html>
+// ...existing code...
+
+// ...existing code...
