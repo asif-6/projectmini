@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SoundNest Login</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="login-container">
+    <h2>Welcome to SoundNext</h2>
+    <form action="login.php" method="POST">
+      <select name="role" required>
+        <option value="" disabled selected>Select Role</option>
+        <option value="admin">Admin</option>
+        <option value="artist">Artist</option>
+        <option value="listener">Listener</option>
+      </select>
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+    <p class="signup-link">
+      Don’t have an account? <a href="signup.html">Sign up here</a>
+    </p>
+  </div>
+</body>
+</html>
